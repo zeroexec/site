@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Daftar Aplikasi GitHub Pages</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #24292e; border-bottom: 2px solid #eaecef; padding-bottom: 10px; }
+        .app-list a {
+            display: block;
+            padding: 10px;
+            margin: 8px 0;
+            background: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #c8e1ff;
+            text-decoration: none;
+            color: #0366d6;
+            font-weight: 600;
+        }
+        .app-list a:hover {
+            background: #e6f6ff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📝 Daftar Halaman HTML Otomatis</h1>
+    <div class="app-list" id="application-list">
+        Memuat daftar halaman dari repositori...
+    </div>
+
+    <script>
+        // GANTI DENGAN USERNAME DAN NAMA REPOSITORI ANDA
+        const USERNAME = 'ganti_dengan_username_anda'; // Contoh: 'AdlanMadjiedRidho'
+        const REPO_NAME = 'ganti_dengan_repo_anda';    // Contoh: 'MyProjectPages'
+        
+        // API untuk mendapatkan konten root direktori
+        const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO_NAME}/contents/`;
+        
+        async function loadFileList() {
+            const listElement = document.getElementById('application-list');
+            listElement.innerHTML = 'Memuat...';
+
+            try {
+                const response = await fetch(API_URL);
+                
+                // Cek Rate Limiting atau Error
+                if (!response.ok) {
+                    throw new Error(`Gagal mengambil data dari GitHub API. Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                listElement.innerHTML = '';
+                
+                let foundHtmlFiles = false;
+
+                data.forEach(item => {
+                    // Hanya memproses file yang berakhiran .html dan bukan index.html
+                    if (item.type === 'file' && item.name.endsWith('.html') && item.name !== 'index.html') {
+                        foundHtmlFiles = true;
+                        
+                        const link = document.createElement('a');
+                        // link.path sudah relatif terhadap root halaman
+                        link.href = `./${item.path}`; 
+                        
+                        // Membuat teks link lebih bersih
+                        let linkText = item.name.replace('.html', '').replace(/[-_]/g, ' '); // Menghilangkan .html dan mengganti - atau _ dengan spasi
+                        linkText = linkText.charAt(0).toUpperCase() + linkText.slice(1); // Kapitalisasi huruf pertama
+                        
+                        link.textContent = linkText;
+                        listElement.appendChild(link);
+                    }
+                });
+
+                if (!foundHtmlFiles) {
+                    listElement.innerHTML = '<p>Tidak ada file .html lain yang ditemukan di root repositori.</p>';
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                listElement.innerHTML = `<p style="color: red;">⚠️ Gagal terhubung ke GitHub API. Periksa **USERNAME** dan **REPO_NAME** Anda di kode JavaScript, atau mungkin Anda mencapai **GitHub API Rate Limit**.</p>`;
+            }
+        }
+
+        // Jalankan fungsi saat halaman dimuat
+        loadFileList();
+    </script>
+
+</body>
+</html>
