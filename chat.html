@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Chat WA Style</title>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    
+    <style>
+        /* CSS FULL SCREEN DAN RESPONSIVITAS */
+        body { 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #ECE5DD; 
+            display: flex; 
+            height: 100vh; 
+            width: 100vw;
+            justify-content: center; 
+            align-items: center; 
+        }
+        .main-app { 
+            width: 100vw; 
+            height: 100vh; 
+            max-width: none; 
+            background: #f2f2f2; 
+            display: flex; 
+            box-shadow: none; 
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        /* Sidebar / Daftar Kontak */
+        .sidebar {
+            width: 300px; 
+            min-width: 250px;
+            background-color: white; 
+            border-right: 1px solid #ddd;
+            flex-shrink: 0; 
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 15px; 
+            background-color: #075E54;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .contact-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex; /* Untuk tata letak horizontal di item kontak */
+            justify-content: space-between;
+        }
+        .contact-item:hover, .contact-item.active {
+            background-color: #f0f0f0;
+        }
+        .contact-details {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .contact-name { font-weight: bold; }
+        .last-message { 
+            font-size: 12px; 
+            color: #888; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            max-width: 90%; /* Batasi lebar cuplikan pesan */
+        }
+        .contact-meta {
+            text-align: right;
+            margin-left: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .unread-indicator {
+            background-color: #25D366; /* Hijau WA */
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* Ruangan Chat Utama (Gaya Chat Sebelumnya) */
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background-color: #f9f9f9; }
+        .chat-header { background-color: #075E54; color: white; padding: 15px; font-size: 18px; font-weight: bold; display: flex; align-items: center; }
+        .messages { flex-grow: 1; padding: 10px; overflow-y: auto; background-image: url('data:image/svg+xml;charset=utf-8,<svg width="100%" height="100%" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" opacity="0.1"><circle cx="50" cy="50" r="1" fill="%23075E54"/></svg>'); background-repeat: repeat; background-size: 10px 10px; display: flex; flex-direction: column;}
+        .message-bubble { max-width: 80%; padding: 8px 12px; margin-bottom: 10px; border-radius: 8px; word-wrap: break-word; font-size: 14px; box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);}
+        .sent { background-color: #DCF8C6; align-self: flex-end; margin-left: auto; text-align: left;}
+        .received { background-color: white; align-self: flex-start; margin-right: auto; text-align: left;}
+        .message-time { display: block; font-size: 10px; color: #888; margin-top: 5px; text-align: right;}
+        .sender-name { font-weight: bold; font-size: 12px; margin-bottom: 2px; color: #128C7E; }
+        .chat-input { display: flex; padding: 10px; background-color: #f0f0f0; border-top: 1px solid #ddd; }
+        .chat-input input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; font-size: 16px; outline: none;}
+        .chat-input button { background-color: #075E54; color: white; border: none; padding: 10px; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px;}
+
+        /* Responsif HP */
+        .back-button { display: none; color: white; font-size: 24px; margin-right: 10px; cursor: pointer; }
+        @media (max-width: 768px) {
+            .sidebar { display: none; position: absolute; height: 100%; z-index: 10; width: 100%; }
+            .chat-area { width: 100%; }
+            .sidebar.show { display: flex; }
+            .back-button { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-app">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            Chats (Sebagai: <span id="current-user-name">Loading...</span>)
+            <button onclick="firebase.auth().signOut().then(() => { window.location.href='login.html'; })" style="background:#128C7E; color:white; border:none; border-radius:4px; padding: 5px 10px; cursor:pointer; font-size:14px;">Logout</button>
+        </div>
+        <div id="contacts-list">
+            </div>
+    </div>
+
+    <div class="chat-area" id="chat-area">
+        <div class="chat-header">
+            <span class="back-button" onclick="showSidebar()">&#x2190;</span>
+            <span id="active-chat-name">Pilih Kontak</span>
+        </div>
+        
+        <div class="messages" id="messages-container">
+            </div>
+
+        <div class="chat-input">
+            <input type="text" id="message-input" placeholder="Ketik pesan..." required>
+            <button id="send-button">
+                &#x27A4;
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Konfigurasi Firebase Anda
+    const firebaseConfig = {
+        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNn5kgE",
+        authDomain: "mysite-98643.firebaseapp.com",
+        databaseURL: "https://mysite-98643-default-rtdb.firebaseio.com", 
+        projectId: "mysite-98643",
+        storageBucket: "mysite-98643.firebasestorage.app",
+        messagingSenderId: "464510122157",
+        appId: "1:464510122157:web:9b2e1a1ed7d197a6796e24"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const database = firebase.database();
+    
+    // Elemen-elemen HTML
+    const sidebar = document.getElementById('sidebar');
+    const chatArea = document.getElementById('chat-area');
+    const contactsList = document.getElementById('contacts-list');
+    const messagesContainer = document.getElementById('messages-container');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const activeChatName = document.getElementById('active-chat-name');
+    const currentUserNameDisplay = document.getElementById('current-user-name');
+
+    let currentUser = null;
+    let activeChatId = null; 
+    let activePartnerUid = null; 
+    let messagesListener = null; 
+    const LOGIN_PAGE = 'login.html'; 
+    
+    // --- FUNGSI UTILITY ---
+    function getPartnerUid(chatId) {
+        if (!currentUser) return null;
+        const uids = chatId.split('_');
+        return uids[0] === currentUser.uid ? uids[1] : uids[0];
+    }
+    
+    function getUserDefaultName(user) {
+        return user.displayName || user.email.split('@')[0];
+    }
+    
+    // --- FUNGSI TAMPILAN RESPONSIVE (HP) ---
+    function showChatArea() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('show');
+            chatArea.style.display = 'flex';
+        }
+    }
+
+    function showSidebar() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('show');
+            chatArea.style.display = 'none';
+        }
+    }
+
+
+    // --- FUNGSI 1: Menyimpan/Memperbarui Data User di Database ---
+    function saveUserData(user) {
+        const userRef = database.ref('users/' + user.uid);
+        userRef.set({
+            displayName: user.displayName,
+            email: user.email,
+            uid: user.uid,
+            lastOnline: firebase.database.ServerValue.TIMESTAMP
+        });
+        currentUserNameDisplay.textContent = getUserDefaultName(user);
+    }
+
+    // --- FUNGSI 2: Memuat Daftar Chat DARI METADATA (Diurutkan & Cuplikan Pesan) ---
+    function loadChatsList() {
+        // Mendengarkan metadata chat user saat ini, diurutkan berdasarkan timestamp pesan terakhir
+        const chatsRef = database.ref(`user-chats/${currentUser.uid}`)
+                                 .orderByChild('lastTimestamp'); // Kunci untuk sorting
+
+        chatsRef.on('value', (snapshot) => {
+            const chatsData = [];
+            snapshot.forEach(childSnapshot => {
+                chatsData.push(childSnapshot.val());
+            });
+
+            // Urutkan secara descending (terbaru di atas)
+            chatsData.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+            
+            contactsList.innerHTML = ''; 
+            let firstChat = true;
+
+            if (chatsData.length === 0) {
+                // Jika tidak ada chat, muat daftar user (seperti sebelumnya)
+                loadUsersForFirstTime();
+                return;
+            }
+
+            chatsData.forEach(chat => {
+                const chatId = chat.chatId;
+                const contactUid = getPartnerUid(chatId);
+                const contactName = chat.partnerName;
+                const lastMessage = chat.lastMessage;
+                const unreadCount = chat.unreadCount || 0;
+
+                const item = document.createElement('div');
+                item.classList.add('contact-item');
+                item.dataset.chatId = chatId;
+                item.dataset.chatName = contactName;
+                item.onclick = () => selectChat(chatId, contactName, contactUid);
+
+                // Struktur item kontak: Nama & Snippet (kiri) | Waktu & Indikator (kanan)
+                item.innerHTML = `
+                    <div class="contact-details">
+                        <div class="contact-name">${contactName}</div>
+                        <div class="last-message">${lastMessage.length > 30 ? lastMessage.substring(0, 30) + '...' : lastMessage}</div>
+                    </div>
+                    <div class="contact-meta">
+                        ${unreadCount > 0 ? `<div class="unread-indicator">${unreadCount > 99 ? '99+' : unreadCount}</div>` : ''}
+                    </div>
+                `;
+                contactsList.appendChild(item);
+
+                if (firstChat) {
+                    selectChat(chatId, contactName, contactUid);
+                    firstChat = false;
+                }
+            });
+        });
+    }
+
+    // --- FUNGSI DARURAT: Muat User jika Belum Ada Chat ---
+    function loadUsersForFirstTime() {
+        // Logika sederhana untuk memuat user jika node user-chats kosong
+        const usersRef = database.ref('users');
+        usersRef.once('value', (snapshot) => {
+            snapshot.forEach(childSnapshot => {
+                const contact = childSnapshot.val();
+                if (contact.uid !== currentUser.uid) {
+                    const contactUid = contact.uid;
+                    const contactName = getUserDefaultName(contact);
+                    const chatIds = [currentUser.uid, contactUid].sort();
+                    const privateChatId = chatIds[0] + '_' + chatIds[1];
+                    
+                    const item = document.createElement('div');
+                    item.classList.add('contact-item');
+                    item.dataset.chatId = privateChatId;
+                    item.dataset.chatName = contactName;
+                    item.onclick = () => selectChat(privateChatId, contactName, contactUid);
+
+                    item.innerHTML = `
+                        <div class="contact-details">
+                            <div class="contact-name">${contactName}</div>
+                            <div class="last-message">Klik untuk mulai chat...</div>
+                        </div>
+                        <div class="contact-meta"></div>
+                    `;
+                    contactsList.appendChild(item);
+                }
+            });
+             if (contactsList.children.length === 0) {
+                 activeChatName.textContent = "Tidak ada user lain ditemukan.";
+                 messagesContainer.innerHTML = '<p style="text-align:center; padding-top:50px;">Ajak teman Anda login menggunakan aplikasi ini!</p>';
+            }
+        });
+    }
+
+
+    // --- FUNGSI 3: Mengganti Ruangan Chat ---
+    window.selectChat = function(chatId, chatName, partnerUid) {
+        if (activeChatId === chatId) {
+            showChatArea();
+            return;
+        }
+
+        // Hapus listener chat sebelumnya
+        if (messagesListener) {
+            database.ref(`chats/${activeChatId}/messages`).off('child_added', messagesListener);
+        }
+
+        activeChatId = chatId;
+        activePartnerUid = partnerUid;
+        activeChatName.textContent = chatName;
+        messagesContainer.innerHTML = ''; 
+
+        // Reset Unread Count saat chat dibuka
+        database.ref(`user-chats/${currentUser.uid}/${activeChatId}/unreadCount`).set(0);
+
+        // Update CSS Active
+        document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+        if (activeItem) {
+            activeItem.classList.add('active');
+            const indicator = activeItem.querySelector('.unread-indicator');
+            if (indicator) indicator.remove(); // Hilangkan indikator di UI
+        }
+
+        listenForMessages(chatId);
+        showChatArea(); 
+    }
+
+    // --- FUNGSI 4: Mengirim Pesan DAN UPDATE METADATA ---
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (text === "" || !currentUser || !activeChatId || !activePartnerUid) return;
+
+        const newMessage = {
+            senderId: currentUser.uid,
+            senderName: getUserDefaultName(currentUser),
+            text: text,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        const currentChatRef = database.ref(`chats/${activeChatId}/messages`);
+        
+        // 1. Simpan Pesan Utama
+        currentChatRef.push(newMessage)
+            .then((result) => {
+                const now = Date.now();
+                const currentUserName = getUserDefaultName(currentUser);
+                const activeChatPartnerName = activeChatName.textContent;
+
+                // 2. Update Metadata Chat di sisi PENGIRIM (Sender)
+                database.ref(`user-chats/${currentUser.uid}/${activeChatId}`).update({
+                    chatId: activeChatId,
+                    partnerUid: activePartnerUid,
+                    partnerName: activeChatPartnerName,
+                    lastMessage: `Anda: ${text}`,
+                    lastTimestamp: now,
+                    // unreadCount tidak diubah di sisi pengirim
+                });
+
+                // 3. Update Metadata Chat di sisi PENERIMA (Receiver)
+                const receiverChatRef = database.ref(`user-chats/${activePartnerUid}/${activeChatId}`);
+                receiverChatRef.transaction((currentData) => {
+                    if (currentData === null) {
+                        return { 
+                            chatId: activeChatId,
+                            partnerUid: currentUser.uid,
+                            partnerName: currentUserName,
+                            lastMessage: text,
+                            lastTimestamp: now,
+                            unreadCount: 1 
+                        };
+                    } else {
+                        currentData.lastMessage = text;
+                        currentData.lastTimestamp = now;
+                        // Tambahkan 1 ke unreadCount hanya jika chat TIDAK aktif di sisi penerima
+                        // Karena kita tidak bisa tahu status aktifnya, kita tambahkan saja. Penerima akan meresetnya saat membuka chat.
+                        currentData.unreadCount = (currentData.unreadCount || 0) + 1;
+                        return currentData;
+                    }
+                });
+
+                messageInput.value = ''; 
+            })
+            .catch(error => {
+                console.error("Gagal mengirim pesan:", error);
+            });
+    }
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // --- FUNGSI 5 & 6 (Listen & Display Messages) ---
+    function listenForMessages(chatId) {
+        const currentChatRef = database.ref(`chats/${chatId}/messages`);
+        
+        messagesListener = currentChatRef.on('child_added', (snapshot) => {
+            const message = snapshot.val();
+            displayMessage(message);
+        });
+    }
+    
+    function displayMessage(message) {
+        if (!currentUser) return; 
+
+        const isSent = message.senderId === currentUser.uid;
+        const messageElement = document.createElement('div');
+        
+        messageElement.classList.add('message-bubble', isSent ? 'sent' : 'received');
+
+        const date = new Date(message.timestamp);
+        const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        let content = '';
+
+        if (!isSent) {
+            content += `<span class="sender-name">${message.senderName}: </span>`;
+        }
+        
+        content += message.text;
+        content += `<span class="message-time">${timeString}</span>`;
+
+        messageElement.innerHTML = content;
+        messagesContainer.appendChild(messageElement);
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+
+    // --- INISIALISASI ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            saveUserData(user); 
+            loadChatsList(); // Mulai memuat daftar chat
+            
+            // Atur tampilan awal di HP
+            if (window.innerWidth <= 768) {
+                // Di HP, secara default sembunyikan chat area sampai chat dipilih
+                showSidebar();
+                chatArea.style.display = 'none'; 
+            }
+        } else {
+            alert("Anda harus login terlebih dahulu.");
+            window.location.href = LOGIN_PAGE; 
+        }
+    });
+</script>
+</body>
+</html>
