@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Halaman Otomatis (GitHub Pages)</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f6f8fa; }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        h1 { color: #24292e; border-bottom: 2px solid #eaecef; padding-bottom: 10px; text-align: center; }
+        .app-list { list-style: none; padding: 0; }
+        .app-list a {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 10px 0;
+            background: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #c8e1ff;
+            text-decoration: none;
+            color: #0366d6;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .app-list a:hover {
+            background: #e6f6ff;
+            border-color: #0366d6;
+        }
+        .icon { margin-right: 10px; font-size: 1.2em; }
+        .error-message { color: red; padding: 10px; background: #ffebee; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📑 Daftar Halaman HTML Otomatis</h1>
+        <p style="text-align: center; color: #586069;">Diambil dari repositori GitHub menggunakan API</p>
+        <div class="app-list" id="application-list">
+            Memuat daftar halaman dari repositori...
+        </div>
+    </div>
+
+    <script>
+        // === NILAI SUDAH DIGANTI SESUAI PERMINTAAN ===
+        const USERNAME = 'zeroexec';    
+        const REPO_NAME = 'site';    
+        // ===================================
+        
+        // API untuk mendapatkan konten root direktori
+        const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO_NAME}/contents/`;
+        
+        async function loadFileList() {
+            const listElement = document.getElementById('application-list');
+            listElement.innerHTML = '<p style="text-align: center;">Mengambil data...</p>';
+
+            try {
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`Gagal mengambil data dari GitHub API. Status: ${response.status}.`);
+                }
+                
+                const data = await response.json();
+                
+                listElement.innerHTML = '';
+                
+                let foundHtmlFiles = false;
+
+                data.forEach(item => {
+                    // Hanya memproses file yang berakhiran .html dan bukan index.html
+                    if (item.type === 'file' && item.name.endsWith('.html') && item.name !== 'index.html') {
+                        foundHtmlFiles = true;
+                        
+                        const link = document.createElement('a');
+                        link.href = `./${item.path}`; 
+                        
+                        // Membuat teks link lebih bersih: "aplikasi_desain.html" -> "Aplikasi Desain"
+                        let linkText = item.name.replace('.html', '').replace(/[-_]/g, ' '); 
+                        linkText = linkText.charAt(0).toUpperCase() + linkText.slice(1);
+                        
+                        link.innerHTML = `<span class="icon">🔗</span>${linkText}`;
+                        listElement.appendChild(link);
+                    }
+                });
+
+                if (!foundHtmlFiles) {
+                    listElement.innerHTML = '<p style="text-align: center;">Tidak ada file .html lain yang ditemukan di folder ini.</p>';
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                listElement.innerHTML = `
+                    <p class="error-message">⚠️ Gagal terhubung ke GitHub API. Pastikan <b>'${USERNAME}'</b> dan <b>'${REPO_NAME}'</b> sudah benar, atau coba lagi nanti.</p>
+                `;
+            }
+        }
+
+        // Jalankan fungsi saat halaman dimuat
+        loadFileList();
+    </script>
+
+</body>
+</html>
