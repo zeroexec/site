@@ -28,9 +28,9 @@
 </div>
 
 <script>
-    // Konfigurasi Firebase Anda
+    // Konfigurasi Firebase Anda (Diperbaiki dengan API Key terbaru yang Anda berikan)
     const firebaseConfig = {
-        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNn5kgE",
+        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNvkgE", 
         authDomain: "mysite-98643.firebaseapp.com",
         databaseURL: "https://mysite-98643-default-rtdb.firebaseio.com",
         projectId: "mysite-98643",
@@ -46,26 +46,25 @@
     const provider = new firebase.auth.GoogleAuthProvider();
     const loginButton = document.getElementById('google-login-btn');
     const statusDiv = document.getElementById('status');
-    const CHAT_PAGE = 'chat.html'; // Nama file halaman chat
+    const CHAT_PAGE = 'chat.html';
 
     // Fungsi untuk proses Login Google
     function signInWithGoogle() {
-        loginButton.disabled = true; // Nonaktifkan tombol saat proses
+        loginButton.disabled = true;
         statusDiv.textContent = 'Memproses login...';
         
         auth.signInWithPopup(provider)
             .then((result) => {
-                // Login berhasil, Firebase akan mengarahkan melalui onAuthStateChanged
-                // Logika pengarahan ditangani di bawah
+                // Berhasil login, pengarahan ditangani oleh onAuthStateChanged
             })
             .catch((error) => {
+                // Tampilkan pesan error spesifik dari Firebase
                 statusDiv.textContent = `Login Gagal: ${error.message}`;
                 console.error("Login Error:", error);
                 loginButton.disabled = false;
             });
     }
 
-    // Listener untuk tombol
     loginButton.addEventListener('click', signInWithGoogle);
 
     // Mengecek status login saat ini
@@ -74,7 +73,7 @@
             // User sudah login, arahkan ke halaman chat
             statusDiv.textContent = `Login berhasil sebagai ${user.displayName}. Mengarahkan...`;
             setTimeout(() => {
-                window.location.href = CHAT_PAGE; // PENTING: Arahkan ke halaman chat.html
+                window.location.href = CHAT_PAGE;
             }, 1500);
         } else {
             // User belum login
