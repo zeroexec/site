@@ -57,7 +57,7 @@
             border-bottom: 1px solid #eee;
             cursor: pointer;
             transition: background-color 0.2s;
-            display: flex; /* Untuk tata letak horizontal di item kontak */
+            display: flex; 
             justify-content: space-between;
         }
         .contact-item:hover, .contact-item.active {
@@ -74,7 +74,7 @@
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
-            max-width: 90%; /* Batasi lebar cuplikan pesan */
+            max-width: 90%; 
         }
         .contact-meta {
             text-align: right;
@@ -84,7 +84,7 @@
             align-items: flex-end;
         }
         .unread-indicator {
-            background-color: #25D366; /* Hijau WA */
+            background-color: #25D366; 
             color: white;
             border-radius: 50%;
             font-size: 11px;
@@ -151,9 +151,9 @@
 </div>
 
 <script>
-    // Konfigurasi Firebase Anda
+    // Konfigurasi Firebase Anda (API Key telah diganti)
     const firebaseConfig = {
-        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNn5kgE",
+        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNvkgE", 
         authDomain: "mysite-98643.firebaseapp.com",
         databaseURL: "https://mysite-98643-default-rtdb.firebaseio.com", 
         projectId: "mysite-98643",
@@ -222,11 +222,10 @@
         currentUserNameDisplay.textContent = getUserDefaultName(user);
     }
 
-    // --- FUNGSI 2: Memuat Daftar Chat DARI METADATA (Diurutkan & Cuplikan Pesan) ---
+    // --- FUNGSI 2: Memuat Daftar Chat DARI METADATA ---
     function loadChatsList() {
-        // Mendengarkan metadata chat user saat ini, diurutkan berdasarkan timestamp pesan terakhir
         const chatsRef = database.ref(`user-chats/${currentUser.uid}`)
-                                 .orderByChild('lastTimestamp'); // Kunci untuk sorting
+                                 .orderByChild('lastTimestamp');
 
         chatsRef.on('value', (snapshot) => {
             const chatsData = [];
@@ -234,14 +233,12 @@
                 chatsData.push(childSnapshot.val());
             });
 
-            // Urutkan secara descending (terbaru di atas)
             chatsData.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
             
             contactsList.innerHTML = ''; 
             let firstChat = true;
 
             if (chatsData.length === 0) {
-                // Jika tidak ada chat, muat daftar user (seperti sebelumnya)
                 loadUsersForFirstTime();
                 return;
             }
@@ -259,7 +256,6 @@
                 item.dataset.chatName = contactName;
                 item.onclick = () => selectChat(chatId, contactName, contactUid);
 
-                // Struktur item kontak: Nama & Snippet (kiri) | Waktu & Indikator (kanan)
                 item.innerHTML = `
                     <div class="contact-details">
                         <div class="contact-name">${contactName}</div>
@@ -281,7 +277,6 @@
 
     // --- FUNGSI DARURAT: Muat User jika Belum Ada Chat ---
     function loadUsersForFirstTime() {
-        // Logika sederhana untuk memuat user jika node user-chats kosong
         const usersRef = database.ref('users');
         usersRef.once('value', (snapshot) => {
             snapshot.forEach(childSnapshot => {
@@ -323,7 +318,6 @@
             return;
         }
 
-        // Hapus listener chat sebelumnya
         if (messagesListener) {
             database.ref(`chats/${activeChatId}/messages`).off('child_added', messagesListener);
         }
@@ -377,7 +371,6 @@
                     partnerName: activeChatPartnerName,
                     lastMessage: `Anda: ${text}`,
                     lastTimestamp: now,
-                    // unreadCount tidak diubah di sisi pengirim
                 });
 
                 // 3. Update Metadata Chat di sisi PENERIMA (Receiver)
@@ -395,8 +388,6 @@
                     } else {
                         currentData.lastMessage = text;
                         currentData.lastTimestamp = now;
-                        // Tambahkan 1 ke unreadCount hanya jika chat TIDAK aktif di sisi penerima
-                        // Karena kita tidak bisa tahu status aktifnya, kita tambahkan saja. Penerima akan meresetnya saat membuka chat.
                         currentData.unreadCount = (currentData.unreadCount || 0) + 1;
                         return currentData;
                     }
@@ -458,11 +449,10 @@
         if (user) {
             currentUser = user;
             saveUserData(user); 
-            loadChatsList(); // Mulai memuat daftar chat
+            loadChatsList(); 
             
             // Atur tampilan awal di HP
             if (window.innerWidth <= 768) {
-                // Di HP, secara default sembunyikan chat area sampai chat dipilih
                 showSidebar();
                 chatArea.style.display = 'none'; 
             }
