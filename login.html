@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Aplikasi Chat</title>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-align: center; }
+        h2 { color: #075E54; margin-bottom: 30px; }
+        button { padding: 12px 25px; font-size: 16px; cursor: pointer; background-color: #4285F4; color: white; border: none; border-radius: 25px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: center; }
+        button:hover { background-color: #357ae8; }
+        .google-icon { width: 20px; height: 20px; margin-right: 10px; }
+        #status { margin-top: 20px; color: #333; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Masuk ke Aplikasi Chat</h2>
+    <button id="google-login-btn">
+        <img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo">
+        Login dengan Google (Gmail)
+    </button>
+    <div id="status"></div>
+</div>
+
+<script>
+    // Konfigurasi Firebase Anda
+    const firebaseConfig = {
+        apiKey: "AIzaSyB-kiGFrRI3GMfW7DT2Dt7DmpDBsFNn5kgE",
+        authDomain: "mysite-98643.firebaseapp.com",
+        databaseURL: "https://mysite-98643-default-rtdb.firebaseio.com",
+        projectId: "mysite-98643",
+        storageBucket: "mysite-98643.firebasestorage.app",
+        messagingSenderId: "464510122157",
+        appId: "1:464510122157:web:9b2e1a1ed7d197a6796e24"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const loginButton = document.getElementById('google-login-btn');
+    const statusDiv = document.getElementById('status');
+    const CHAT_PAGE = 'chat.html'; // Nama file halaman chat
+
+    // Fungsi untuk proses Login Google
+    function signInWithGoogle() {
+        loginButton.disabled = true; // Nonaktifkan tombol saat proses
+        statusDiv.textContent = 'Memproses login...';
+        
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                // Login berhasil, Firebase akan mengarahkan melalui onAuthStateChanged
+                // Logika pengarahan ditangani di bawah
+            })
+            .catch((error) => {
+                statusDiv.textContent = `Login Gagal: ${error.message}`;
+                console.error("Login Error:", error);
+                loginButton.disabled = false;
+            });
+    }
+
+    // Listener untuk tombol
+    loginButton.addEventListener('click', signInWithGoogle);
+
+    // Mengecek status login saat ini
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // User sudah login, arahkan ke halaman chat
+            statusDiv.textContent = `Login berhasil sebagai ${user.displayName}. Mengarahkan...`;
+            setTimeout(() => {
+                window.location.href = CHAT_PAGE; // PENTING: Arahkan ke halaman chat.html
+            }, 1500);
+        } else {
+            // User belum login
+            statusDiv.textContent = 'Silakan login untuk memulai chat.';
+            loginButton.disabled = false;
+        }
+    });
+
+</script>
+</body>
+</html>
